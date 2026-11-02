@@ -295,31 +295,56 @@ lessons = {
     ),
 }
 
+# Banque de 104 questions par code : 4 variantes pour chacune des 26 lettres.
+# Les réponses sont générées directement depuis les tables de codage de l'application.
+def build_letter_quiz(mapping, display):
+    letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    bank = []
+    for index, letter in enumerate(letters):
+        value = display(mapping[letter])
+        distractors = [
+            display(mapping[letters[(index + offset) % 26]])
+            for offset in (1, 2, 3)
+        ]
+        options = [value] + distractors
+        bank.append({
+            "question": f"Quel est le code de la lettre {letter} ?",
+            "options": options,
+            "answer": value,
+            "explanation": f"La lettre {letter} correspond à {value}.",
+        })
+        reverse_options = [letters[index]] + [
+            letters[(index + offset) % 26] for offset in (1, 2, 3)
+        ]
+        bank.append({
+            "question": f"Quelle lettre correspond au code {value} ?",
+            "options": reverse_options,
+            "answer": letter,
+            "explanation": f"Le code {value} représente la lettre {letter}.",
+        })
+        # Deux formulations supplémentaires pour dépasser 100 questions.
+        bank.append({
+            "question": f"Si tu transmets la lettre {letter}, quelle séquence dois-tu utiliser ?",
+            "options": [value] + distractors,
+            "answer": value,
+            "explanation": f"Pour transmettre {letter}, utilise {value}.",
+        })
+        bank.append({
+            "question": f"Tu reçois le signal {value}. Quelle lettre notes-tu ?",
+            "options": reverse_options,
+            "answer": letter,
+            "explanation": f"Le signal {value} signifie {letter}.",
+        })
+    return bank
+
 quiz = {
-    "Morse": {
-        "question": "Quel est le signal Morse de la lettre S ?",
-        "options": ["...", "---", ".-."],
-        "answer": "...",
-        "explanation": "S = trois points : ...",
-    },
-    "CASSIS K6": {
-        "question": "Quel nombre représente la lettre A en CASSIS K6 ?",
-        "options": ["06", "22", "01"],
-        "answer": "22",
-        "explanation": "Dans le CASSIS K6, A=22.",
-    },
-    "Alphabet phonétique OTAN": {
-        "question": "Quel mot représente la lettre B ?",
-        "options": ["ALFA", "BRAVO", "CHARLIE"],
-        "answer": "BRAVO",
-        "explanation": "B=BRAVO dans l'alphabet phonétique OTAN.",
-    },
-    "Sémaphore": {
-        "question": "Dans la table utilisée par FAUCO CODE, quelle position correspond à A ?",
-        "options": ["DOWN-LOW", "DOWN-OUT", "DOWN-HIGH"],
-        "answer": "DOWN-LOW",
-        "explanation": "La table de l'application associe A à DOWN-LOW.",
-    },
+    "Morse": build_letter_quiz(MORSE, lambda value: value),
+    "CASSIS K6": build_letter_quiz(K6, lambda value: value),
+    "Alphabet phonétique OTAN": build_letter_quiz(NATO, lambda value: value),
+    "Sémaphore": build_letter_quiz(
+        SEMAPHORE,
+        lambda pair: f"{pair[0]}-{pair[1]}",
+    ),
 }
 
 with st.expander("📘 Les 4 petites leçons", expanded=True):
@@ -338,19 +363,23 @@ quiz_choice = st.selectbox(
     list(quiz.keys()),
     key="fauco_quiz_choice",
 )
-question = quiz[quiz_choice]
+round_number = st.session_state.get("fauco_quiz_round", 0)
+question_bank = quiz[quiz_choice]
+question = question_bank[round_number % len(question_bank)]
+st.caption(f"Question {round_number % len(question_bank) + 1} sur {len(question_bank)} — banque de {len(question_bank)} questions pour ce code.")
 st.write(f"**{question['question']}**")
 answer = st.radio(
     "Ta réponse",
     question["options"],
-    key=f"fauco_answer_{quiz_choice}",
+    key=f"fauco_answer_{quiz_choice}_{round_number}",
 )
-if st.button("Valider ma réponse", key="fauco_validate_quiz"):
+if st.button("Valider ma réponse", key=f"fauco_validate_quiz_{quiz_choice}_{round_number}"):
     completed = st.session_state.setdefault("fauco_quiz_completed", {})
-    if quiz_choice in completed:
-        st.info("Tu as déjà validé ce thème. Tu peux consulter ton résultat.")
+    completion_key = f"{quiz_choice}_{round_number}"
+    if completion_key in completed:
+        st.info("Cette question a déjà été validée.")
     elif answer == question["answer"]:
-        completed[quiz_choice] = True
+        completed[completion_key] = True
         st.session_state["fauco_quiz_score"] = (
             st.session_state.get("fauco_quiz_score", 0) + 1
         )
@@ -360,10 +389,10 @@ if st.button("Valider ma réponse", key="fauco_validate_quiz"):
 
 completed = st.session_state.get("fauco_quiz_completed", {})
 score = st.session_state.get("fauco_quiz_score", 0)
-st.metric("⭐ Ton score", f"{score} / 4")
-st.progress(score / 4)
-st.caption(f"Thèmes réussis : {len(completed)} sur 4.")
-if st.button("Recommencer le quiz", key="fauco_reset_quiz"):
+st.metric("⭐ Ton score", score)
+st.caption(f"Questions réussies : {len(completed)}.")
+if st.button("🔄 Nouveau quiz — changer les questions", key="fauco_reset_quiz"):
+    st.session_state["fauco_quiz_round"] = round_number + 1
     st.session_state["fauco_quiz_completed"] = {}
     st.session_state["fauco_quiz_score"] = 0
     st.rerun()
@@ -500,4 +529,4 @@ else:
 st.divider()
 st.markdown("### ⚜️ FAUCO CODE")
 st.caption("Créer par LUCMARTIN éclaireur de GSM, futur ingénieur de technologie")
-st.caption("GSM TOUJOURS PRÊT!")
+st.caption("GSM TOUJOURS PRÊT !")
