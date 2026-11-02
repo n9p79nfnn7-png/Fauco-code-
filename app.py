@@ -257,6 +257,117 @@ st.info(
     "Morse, CASSIS K6, alphabet phonétique OTAN et sémaphore."
 )
 
+
+# ------------------- MODE APPRENTISSAGE SCOUT -------------------
+
+st.divider()
+st.header("🎓 MODE APPRENTISSAGE SCOUT")
+st.write(
+    "Apprends les quatre moyens de transmission, puis vérifie tes "
+    "connaissances avec un mini-quiz. Chaque bonne réponse rapporte 1 point."
+)
+
+lessons = {
+    "Morse": (
+        "Le Morse représente les lettres et les chiffres avec des points (.) "
+        "et des traits (-). Dans cette application, les lettres d'un même mot "
+        "sont séparées par des espaces et les mots par une barre oblique (/).",
+        "Exemple : SOS = ... --- ...",
+    ),
+    "CASSIS K6": (
+        "Le CASSIS K6 associe chaque lettre à un nombre à deux chiffres. "
+        "La suite commence à K=06, continue jusqu'à Z=21, puis reprend à "
+        "A=22 jusqu'à J=05.",
+        "Exemple : A=22, B=23, C=24. Donc ABC = 22 23 24.",
+    ),
+    "Alphabet phonétique OTAN": (
+        "L'alphabet phonétique international OTAN remplace chaque lettre "
+        "par un mot prononcé à la radio pour éviter les confusions.",
+        "Exemple : A=ALFA, B=BRAVO, C=CHARLIE.",
+    ),
+    "Sémaphore": (
+        "Le sémaphore transmet les lettres grâce à deux drapeaux tenus "
+        "dans des positions précises. Chaque lettre correspond à une "
+        "combinaison des deux bras.",
+        "Exemple dans la table de cette application : A=DOWN-LOW, "
+        "B=DOWN-OUT, C=DOWN-HIGH. Les noms décrivent les positions "
+        "du point de vue de la personne qui émet.",
+    ),
+}
+
+quiz = {
+    "Morse": {
+        "question": "Quel est le signal Morse de la lettre S ?",
+        "options": ["...", "---", ".-."],
+        "answer": "...",
+        "explanation": "S = trois points : ...",
+    },
+    "CASSIS K6": {
+        "question": "Quel nombre représente la lettre A en CASSIS K6 ?",
+        "options": ["06", "22", "01"],
+        "answer": "22",
+        "explanation": "Dans le CASSIS K6, A=22.",
+    },
+    "Alphabet phonétique OTAN": {
+        "question": "Quel mot représente la lettre B ?",
+        "options": ["ALFA", "BRAVO", "CHARLIE"],
+        "answer": "BRAVO",
+        "explanation": "B=BRAVO dans l'alphabet phonétique OTAN.",
+    },
+    "Sémaphore": {
+        "question": "Dans la table utilisée par FAUCO CODE, quelle position correspond à A ?",
+        "options": ["DOWN-LOW", "DOWN-OUT", "DOWN-HIGH"],
+        "answer": "DOWN-LOW",
+        "explanation": "La table de l'application associe A à DOWN-LOW.",
+    },
+}
+
+with st.expander("📘 Les 4 petites leçons", expanded=True):
+    lesson_choice = st.selectbox(
+        "Choisis une leçon",
+        list(lessons.keys()),
+        key="fauco_lesson_choice",
+    )
+    st.markdown(f"**{lesson_choice}**")
+    st.write(lessons[lesson_choice][0])
+    st.info(lessons[lesson_choice][1])
+
+st.subheader("📝 Quiz scout")
+quiz_choice = st.selectbox(
+    "Choisis le thème du quiz",
+    list(quiz.keys()),
+    key="fauco_quiz_choice",
+)
+question = quiz[quiz_choice]
+st.write(f"**{question['question']}**")
+answer = st.radio(
+    "Ta réponse",
+    question["options"],
+    key=f"fauco_answer_{quiz_choice}",
+)
+if st.button("Valider ma réponse", key="fauco_validate_quiz"):
+    completed = st.session_state.setdefault("fauco_quiz_completed", {})
+    if quiz_choice in completed:
+        st.info("Tu as déjà validé ce thème. Tu peux consulter ton résultat.")
+    elif answer == question["answer"]:
+        completed[quiz_choice] = True
+        st.session_state["fauco_quiz_score"] = (
+            st.session_state.get("fauco_quiz_score", 0) + 1
+        )
+        st.success("Bonne réponse ! " + question["explanation"])
+    else:
+        st.error("Pas tout à fait. " + question["explanation"])
+
+completed = st.session_state.get("fauco_quiz_completed", {})
+score = st.session_state.get("fauco_quiz_score", 0)
+st.metric("⭐ Ton score", f"{score} / 4")
+st.progress(score / 4)
+st.caption(f"Thèmes réussis : {len(completed)} sur 4.")
+if st.button("Recommencer le quiz", key="fauco_reset_quiz"):
+    st.session_state["fauco_quiz_completed"] = {}
+    st.session_state["fauco_quiz_score"] = 0
+    st.rerun()
+
 st.divider()
 
 systems = {
@@ -389,4 +500,4 @@ else:
 st.divider()
 st.markdown("### ⚜️ FAUCO CODE")
 st.caption("Créer par LUCMARTIN éclaireur de GSM, futur ingénieur de technologie")
-st.caption("TOUJOURS PRÊT !")
+st.caption("GSM TOUJOURS PRÊT!")
