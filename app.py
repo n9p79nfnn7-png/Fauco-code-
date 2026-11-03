@@ -1,5 +1,7 @@
 import re
 import random
+import base64
+import math
 import unicodedata
 from datetime import datetime
 
@@ -107,6 +109,73 @@ POSITION_FR = {
     "ACROSS_LOW": "croisé devant le corps, bas",
     "ACROSS_HIGH": "croisé devant le corps, haut",
 }
+
+
+def build_semaphore_chart_svg():
+    """Construit une planche visuelle du sémaphore depuis la table SEMAPHORE."""
+    width, height = 920, 790
+    cols, cell_w, cell_h = 4, 220, 112
+    rows = math.ceil(len(SEMAPHORE) / cols)
+    height = 70 + rows * cell_h
+
+    def arm_vector(position, side):
+        # Angles vus par la personne qui émet : l'extérieur est à gauche
+        # pour le bras gauche et à droite pour le bras droit.
+        outward = -1 if side == "left" else 1
+        vectors = {
+            "DOWN": (0, 1),
+            "LOW": (outward * 0.72, 0.72),
+            "OUT": (outward, 0),
+            "HIGH": (outward * 0.72, -0.72),
+            "UP": (0, -1),
+            "ACROSS_LOW": (-outward * 0.72, 0.72),
+            "ACROSS_HIGH": (-outward * 0.72, -0.72),
+        }
+        return vectors[position]
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<rect width="100%" height="100%" rx="22" fill="#171827"/>',
+        '<text x="24" y="38" fill="#f1d28a" font-size="25" font-family="Arial" font-weight="bold">TABLEAU VISUEL DU SÉMAPHORE</text>',
+    ]
+
+    for index, (letter, (left, right)) in enumerate(SEMAPHORE.items()):
+        col, row = index % cols, index // cols
+        x, y = 10 + col * cell_w, 54 + row * cell_h
+        cx, cy = x + cell_w / 2, y + 47
+
+        parts.append(
+            f'<rect x="{x+4}" y="{y+4}" width="{cell_w-10}" height="{cell_h-9}" '
+            'rx="12" fill="#25283b" stroke="#555a73" stroke-width="1.5"/>'
+        )
+        parts.append(
+            f'<text x="{x+18}" y="{y+29}" fill="#f1d28a" font-size="22" '
+            f'font-family="Arial" font-weight="bold">{letter}</text>'
+        )
+
+        # Silhouette simplifiée : tête, corps et deux bras.
+        parts.append(f'<circle cx="{cx}" cy="{cy-18}" r="7" fill="#f3f3f6"/>')
+        parts.append(f'<line x1="{cx}" y1="{cy-10}" x2="{cx}" y2="{cy+22}" stroke="#f3f3f6" stroke-width="5" stroke-linecap="round"/>')
+
+        for position, side in ((left, "left"), (right, "right")):
+            vx, vy = arm_vector(position, side)
+            sx = cx + (-12 if side == "left" else 12)
+            sy = cy - 3
+            ex, ey = sx + vx * 43, sy + vy * 43
+            parts.append(
+                f'<line x1="{sx}" y1="{sy}" x2="{ex}" y2="{ey}" '
+                'stroke="#f3f3f6" stroke-width="5" stroke-linecap="round"/>'
+            )
+            # Fanion au bout du bras, orienté selon la direction du bras.
+            px, py = -vy * 8, vx * 8
+            parts.append(
+                f'<polygon points="{ex},{ey} {ex+vx*18+px},{ey+vy*18+py} '
+                f'{ex+vx*18-px},{ey+vy*18-py}" fill="#e5bd62" stroke="#fff0c8" stroke-width="1"/>'
+            )
+
+    parts.append("</svg>")
+    svg = "".join(parts).encode("utf-8")
+    return "data:image/svg+xml;base64," + base64.b64encode(svg).decode("ascii")
 
 # ------------------------- HELPERS ---------------------------
 
@@ -582,22 +651,18 @@ with st.expander("Alphabet phonétique OTAN"):
         [{"Lettre": key, "Mot": value} for key, value in NATO.items()]
     )
 
-with st.expander("Sémaphore — positions des bras"):
-    rows = []
-    for letter, (left, right) in SEMAPHORE.items():
-        rows.append(
-            {
-                "Lettre": letter,
-                "Bras gauche": POSITION_FR[left],
-                "Bras droit": POSITION_FR[right],
-                "Code technique": f"{left}-{right}",
-            }
-        )
-    st.table(rows)
+with st.expander("Sémaphore — tableau en images", expanded=True):
+    st.markdown(
+        '<div style="text-align:center">'
+        f'<img src="{build_semaphore_chart_svg()}" '
+        'alt="Tableau illustré des 26 lettres du sémaphore" '
+        'style="width:100%;height:auto;border-radius:14px"/>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.caption(
-        "Les positions sont décrites du point de vue de la personne "
-        "qui émet le signal. Pour apprendre le geste, utilise les "
-        "illustrations d'un tableau de sémaphore scout."
+        "Chaque dessin montre la position des deux bras et des fanions. "
+        "Les gestes sont représentés du point de vue de la personne qui émet."
     )
 
 st.divider()
