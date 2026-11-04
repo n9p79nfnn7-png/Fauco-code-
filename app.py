@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit as st
 
 st.set_page_config(
-    page_title="FAUCO CODE",
+    page_title="SCOUT CODE",
     page_icon="⚜️",
     layout="centered",
 )
@@ -687,6 +687,6 @@ else:
     st.caption("Aucune opération enregistrée pour le moment.")
 
 st.divider()
-st.markdown("### ⚜️ FAUCO CODE")
-st.caption("Créer par LUCMARTIN éclaireur de GSM, futur ingénieur de technologie")
-st.caption("TOUJOURS PRÊT !")
+st.markdown("### SCOUT CODE⚜️")
+st.caption("Créer par LUCMARTIN éclaireur de GSM, futur ingénieur d'informatique")
+st.caption("TOUJOURS PRÊT⚜️")
